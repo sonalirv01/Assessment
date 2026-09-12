@@ -1,0 +1,247 @@
+<div class="flex items-center justify-between">
+  <h1 class="text-xl font-bold text-slate-900">{{ isEditMode() ? 'Edit item' : 'Add item' }}</h1>
+  <a routerLink="/admin/items" class="text-sm font-medium text-slate-500 hover:text-slate-700">Back to items</a>
+</div>
+
+@if (loadError()) {
+  <p class="mt-4 rounded-md bg-rose-50 px-4 py-2 text-sm text-rose-700">{{ loadError() }}</p>
+}
+
+@if (!isLoadingItem()) {
+  <div class="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-3">
+    <form [formGroup]="itemForm" (ngSubmit)="submit()" class="space-y-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-2">
+      @if (fieldError('general')) {
+        <p class="rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-700">{{ fieldError('general') }}</p>
+      }
+
+      <div>
+        <label class="mb-1 block text-sm font-medium text-slate-700" for="name">Name</label>
+        <input
+          id="name"
+          type="text"
+          formControlName="name"
+          class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+        />
+        @if (fieldError('name')) {
+          <p class="mt-1 text-xs text-rose-600">{{ fieldError('name') }}</p>
+        }
+      </div>
+
+      <div>
+        <label class="mb-1 block text-sm font-medium text-slate-700" for="description">Description</label>
+        <textarea
+          id="description"
+          formControlName="description"
+          rows="3"
+          class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+        ></textarea>
+        @if (fieldError('description')) {
+          <p class="mt-1 text-xs text-rose-600">{{ fieldError('description') }}</p>
+        }
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <label class="mb-1 block text-sm font-medium text-slate-700" for="category_id">Category</label>
+          <select
+            id="category_id"
+            formControlName="category_id"
+            class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+          >
+            <option [ngValue]="null" disabled>Select a category</option>
+            @for (category of categories(); track category.id) {
+              <option [ngValue]="category.id">{{ category.name }}</option>
+            }
+          </select>
+          @if (fieldError('category_id')) {
+            <p class="mt-1 text-xs text-rose-600">{{ fieldError('category_id') }}</p>
+          }
+        </div>
+
+        <div>
+          <label class="mb-1 block text-sm font-medium text-slate-700" for="metal_type">Metal type</label>
+          <select
+            id="metal_type"
+            formControlName="metal_type"
+            class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+          >
+            <option value="" disabled>Select a metal type</option>
+            @for (metalType of metalTypes(); track metalType.key) {
+              <option [value]="metalType.key">
+                {{ metalType.label }} (&#8377;{{ metalType.price_per_gram }}/g)
+              </option>
+            }
+          </select>
+          @if (fieldError('metal_type')) {
+            <p class="mt-1 text-xs text-rose-600">{{ fieldError('metal_type') }}</p>
+          }
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div>
+          <label class="mb-1 block text-sm font-medium text-slate-700" for="weight_grams">Weight (grams)</label>
+          <input
+            id="weight_grams"
+            type="number"
+            step="0.01"
+            min="0"
+            formControlName="weight_grams"
+            class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+          />
+          @if (fieldError('weight_grams')) {
+            <p class="mt-1 text-xs text-rose-600">{{ fieldError('weight_grams') }}</p>
+          }
+        </div>
+
+        <div>
+          <label class="mb-1 block text-sm font-medium text-slate-700" for="making_charges">Making charges</label>
+          <input
+            id="making_charges"
+            type="number"
+            step="0.01"
+            min="0"
+            formControlName="making_charges"
+            class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+          />
+          @if (fieldError('making_charges')) {
+            <p class="mt-1 text-xs text-rose-600">{{ fieldError('making_charges') }}</p>
+          }
+        </div>
+
+        <div>
+          <label class="mb-1 block text-sm font-medium text-slate-700" for="shipping_charges">Shipping charges</label>
+          <input
+            id="shipping_charges"
+            type="number"
+            step="0.01"
+            min="0"
+            formControlName="shipping_charges"
+            class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+          />
+          @if (fieldError('shipping_charges')) {
+            <p class="mt-1 text-xs text-rose-600">{{ fieldError('shipping_charges') }}</p>
+          }
+        </div>
+      </div>
+
+      <div>
+        <label class="mb-1 block text-sm font-medium text-slate-700" for="images">Images</label>
+        <input
+          id="images"
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          multiple
+          (change)="onFilesSelected($event)"
+          [disabled]="isUploadingImages()"
+          class="block w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-slate-700 hover:file:bg-slate-200"
+        />
+        @if (isUploadingImages()) {
+          <p class="mt-1 text-xs text-slate-500">Uploading...</p>
+        }
+        @if (imageError()) {
+          <p class="mt-1 text-xs text-rose-600">{{ imageError() }}</p>
+        }
+        @if (fieldError('images')) {
+          <p class="mt-1 text-xs text-rose-600">{{ fieldError('images') }}</p>
+        }
+
+        @if (existingImages().length > 0 || stagedImages().length > 0) {
+          <div class="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-4">
+            @for (image of existingImages(); track image.id) {
+              <div class="group relative aspect-square overflow-hidden rounded-md border border-slate-200 bg-slate-100">
+                <img [src]="image.url" alt="Item image" class="h-full w-full object-cover" />
+                @if (canDelete) {
+                  <button
+                    type="button"
+                    (click)="removeExistingImage(image.id)"
+                    [disabled]="deletingImageId() === image.id"
+                    class="absolute right-1 top-1 rounded-full bg-black/60 px-1.5 py-0.5 text-xs font-semibold text-white opacity-0 transition group-hover:opacity-100 disabled:opacity-100"
+                  >
+                    {{ deletingImageId() === image.id ? '...' : '✕' }}
+                  </button>
+                }
+              </div>
+            }
+            @for (staged of stagedImages(); track staged.previewUrl; let i = $index) {
+              <div class="group relative aspect-square overflow-hidden rounded-md border border-slate-200 bg-slate-100">
+                <img [src]="staged.previewUrl" alt="New item image" class="h-full w-full object-cover" />
+                <button
+                  type="button"
+                  (click)="removeStagedImage(i)"
+                  class="absolute right-1 top-1 rounded-full bg-black/60 px-1.5 py-0.5 text-xs font-semibold text-white opacity-0 transition group-hover:opacity-100"
+                >
+                  ✕
+                </button>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="flex items-center gap-2">
+        <input id="is_available" type="checkbox" formControlName="is_available" class="h-4 w-4 rounded border-slate-300" />
+        <label class="text-sm font-medium text-slate-700" for="is_available">Available for purchase</label>
+      </div>
+
+      <div>
+        <p class="mb-2 text-sm font-medium text-slate-700">Taxes</p>
+        <div class="flex flex-wrap gap-3">
+          @for (tax of taxes(); track tax.id) {
+            <label class="flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm">
+              <input
+                type="checkbox"
+                [checked]="isTaxSelected(tax.id)"
+                (change)="toggleTax(tax.id)"
+                class="h-4 w-4 rounded border-slate-300"
+              />
+              {{ tax.name }} ({{ tax.percentage }}%)
+            </label>
+          }
+        </div>
+        @if (fieldError('tax_ids')) {
+          <p class="mt-1 text-xs text-rose-600">{{ fieldError('tax_ids') }}</p>
+        }
+      </div>
+
+      <div class="flex justify-end gap-3 pt-2">
+        <a routerLink="/admin/items" class="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
+          Cancel
+        </a>
+        <button
+          type="submit"
+          [disabled]="isSubmitting()"
+          class="rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+        >
+          {{ isSubmitting() ? 'Saving...' : 'Save item' }}
+        </button>
+      </div>
+    </form>
+
+    <aside class="h-fit rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h2 class="text-sm font-semibold text-slate-900">Live price preview</h2>
+      <p class="mt-1 text-xs text-slate-500">Mirrors the backend pricing formula.</p>
+
+      <dl class="mt-4 space-y-2 text-sm">
+        <div class="flex justify-between">
+          <dt class="text-slate-500">Metal cost</dt>
+          <dd class="font-medium text-slate-800">&#8377;{{ pricePreview().metalCost | number: '1.0-2' }}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt class="text-slate-500">Taxable amount</dt>
+          <dd class="font-medium text-slate-800">&#8377;{{ pricePreview().taxableAmount | number: '1.0-2' }}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt class="text-slate-500">Tax total</dt>
+          <dd class="font-medium text-slate-800">&#8377;{{ pricePreview().taxTotal | number: '1.0-2' }}</dd>
+        </div>
+        <div class="flex justify-between border-t border-slate-200 pt-2 text-base font-bold text-slate-900">
+          <dt>Final price</dt>
+          <dd>&#8377;{{ pricePreview().finalPrice | number: '1.0-2' }}</dd>
+        </div>
+      </dl>
+    </aside>
+  </div>
+} @else {
+  <p class="mt-6 text-sm text-slate-500">Loading item...</p>
+}

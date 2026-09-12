@@ -1,0 +1,305 @@
+{
+  "info": {
+    "name": "Jewellery E-Commerce API",
+    "description": "All endpoints for the jewellery e-commerce backend. Run \"Login\" first — it automatically saves the returned token into the {{token}} collection variable, which every admin-only request below already sends as its Bearer token.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://127.0.0.1:8000/api", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "item_id", "value": "1", "type": "string" },
+    { "key": "category_id", "value": "1", "type": "string" },
+    { "key": "tax_id", "value": "1", "type": "string" },
+    { "key": "metal_type_key", "value": "gold_22k", "type": "string" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.token) {",
+                  "    pm.collectionVariables.set('token', body.token);",
+                  "    console.log('Saved token to {{token}}');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@jewellery.test\",\n  \"password\": \"Password123!\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/auth/login", "host": ["{{base_url}}"], "path": ["auth", "login"] },
+            "description": "Logs the seeded admin in and returns a Sanctum bearer token. Throttled to 5 attempts/minute."
+          }
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/auth/me", "host": ["{{base_url}}"], "path": ["auth", "me"] },
+            "description": "Returns the authenticated user's id/name/email/role. Requires a valid token."
+          }
+        },
+        {
+          "name": "Logout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    pm.collectionVariables.set('token', '');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/auth/logout", "host": ["{{base_url}}"], "path": ["auth", "logout"] },
+            "description": "Revokes the current access token."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Catalogue (Public)",
+      "item": [
+        {
+          "name": "List Items",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/items?search=&category_id=&metal_type=&min_price=&max_price=&is_available=true&sort_by=name&sort_dir=asc&page=1&per_page=12",
+              "host": ["{{base_url}}"],
+              "path": ["items"],
+              "query": [
+                { "key": "search", "value": "", "description": "Matches against item name" },
+                { "key": "category_id", "value": "", "description": "Filter by category id" },
+                { "key": "metal_type", "value": "", "description": "e.g. gold_22k, silver, platinum" },
+                { "key": "min_price", "value": "" },
+                { "key": "max_price", "value": "" },
+                { "key": "is_available", "value": "true", "description": "true or false" },
+                { "key": "sort_by", "value": "name", "description": "name or price" },
+                { "key": "sort_dir", "value": "asc", "description": "asc or desc" },
+                { "key": "page", "value": "1" },
+                { "key": "per_page", "value": "12" }
+              ]
+            },
+            "description": "Public catalogue listing with search, filters, sorting, and pagination. Price is calculated live and isn't a database column, so min_price/max_price/sort_by=price are applied in-memory after the other filters narrow the query."
+          }
+        },
+        {
+          "name": "Get Item By ID",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/items/{{item_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["items", "{{item_id}}"]
+            }
+          }
+        },
+        {
+          "name": "List Categories",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/categories", "host": ["{{base_url}}"], "path": ["categories"] }
+          }
+        },
+        {
+          "name": "List Metal Types",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/metal-types", "host": ["{{base_url}}"], "path": ["metal-types"] },
+            "description": "Today's rate per gram for each metal (gold_24k, gold_22k, gold_18k, silver, platinum)."
+          }
+        },
+        {
+          "name": "List Taxes",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/taxes", "host": ["{{base_url}}"], "path": ["taxes"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Items",
+      "item": [
+        {
+          "name": "Create Item",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Elegant Gold Necklace\",\n  \"description\": \"A timeless 22K gold necklace, perfect for weddings.\",\n  \"category_id\": 1,\n  \"metal_type\": \"gold_22k\",\n  \"weight_grams\": 12.5,\n  \"making_charges\": 1500,\n  \"shipping_charges\": 200,\n  \"is_available\": true,\n  \"image_url\": \"https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=600\",\n  \"tax_ids\": [1, 2]\n}"
+            },
+            "url": { "raw": "{{base_url}}/items", "host": ["{{base_url}}"], "path": ["items"] },
+            "description": "Admin only. tax_ids is optional; final_price is always calculated server-side from the current metal rate + these charges + the selected taxes."
+          }
+        },
+        {
+          "name": "Update Item",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Elegant Gold Necklace (Updated)\",\n  \"description\": \"A timeless 22K gold necklace, perfect for weddings.\",\n  \"category_id\": 1,\n  \"metal_type\": \"gold_22k\",\n  \"weight_grams\": 13,\n  \"making_charges\": 1600,\n  \"shipping_charges\": 200,\n  \"is_available\": true,\n  \"image_url\": \"https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=600\",\n  \"tax_ids\": [1]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/items/{{item_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["items", "{{item_id}}"]
+            },
+            "description": "Admin only. Full replace (PUT) — send every field, not just the ones changing."
+          }
+        },
+        {
+          "name": "Delete Item",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/items/{{item_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["items", "{{item_id}}"]
+            },
+            "description": "Admin only."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Categories",
+      "item": [
+        {
+          "name": "Create Category",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Anklets\"\n}" },
+            "url": { "raw": "{{base_url}}/categories", "host": ["{{base_url}}"], "path": ["categories"] },
+            "description": "Admin only. slug is generated automatically from name."
+          }
+        },
+        {
+          "name": "Update Category",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Anklets & Toe Rings\"\n}" },
+            "url": {
+              "raw": "{{base_url}}/categories/{{category_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["categories", "{{category_id}}"]
+            },
+            "description": "Admin only."
+          }
+        },
+        {
+          "name": "Delete Category",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/categories/{{category_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["categories", "{{category_id}}"]
+            },
+            "description": "Admin only."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Metal Rates",
+      "item": [
+        {
+          "name": "Update Metal Rate",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"price_per_gram\": 6700\n}" },
+            "url": {
+              "raw": "{{base_url}}/metal-types/{{metal_type_key}}",
+              "host": ["{{base_url}}"],
+              "path": ["metal-types", "{{metal_type_key}}"]
+            },
+            "description": "Admin only. Updates today's rate for one metal (identified by its key, e.g. gold_22k) — every item using that metal is priced off this immediately."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Taxes",
+      "item": [
+        {
+          "name": "Create Tax",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Local Cess\",\n  \"percentage\": 0.5,\n  \"is_active\": true\n}"
+            },
+            "url": { "raw": "{{base_url}}/taxes", "host": ["{{base_url}}"], "path": ["taxes"] },
+            "description": "Admin only."
+          }
+        },
+        {
+          "name": "Update Tax",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"GST\",\n  \"percentage\": 3,\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/taxes/{{tax_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["taxes", "{{tax_id}}"]
+            },
+            "description": "Admin only."
+          }
+        },
+        {
+          "name": "Delete Tax",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/taxes/{{tax_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["taxes", "{{tax_id}}"]
+            },
+            "description": "Admin only."
+          }
+        }
+      ]
+    }
+  ]
+}

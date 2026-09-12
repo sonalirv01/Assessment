@@ -1,0 +1,56 @@
+<div class="min-h-screen bg-slate-50">
+  <header class="border-b border-slate-200 bg-white">
+    <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-8">
+      <div class="flex flex-wrap items-center gap-4">
+        <span class="text-lg font-bold text-slate-900">Aurum Admin</span>
+        <nav class="flex flex-wrap gap-1 text-sm font-medium">
+          <a
+            routerLink="/admin/items"
+            routerLinkActive="bg-slate-900 text-white"
+            class="rounded-md px-3 py-1.5 text-slate-600 hover:bg-slate-100"
+          >
+            Items
+          </a>
+          <a
+            routerLink="/admin/categories"
+            routerLinkActive="bg-slate-900 text-white"
+            class="rounded-md px-3 py-1.5 text-slate-600 hover:bg-slate-100"
+          >
+            Categories
+          </a>
+          <a
+            routerLink="/admin/metal-rates"
+            routerLinkActive="bg-slate-900 text-white"
+            class="rounded-md px-3 py-1.5 text-slate-600 hover:bg-slate-100"
+          >
+            Metal Rates
+          </a>
+          <a
+            routerLink="/admin/taxes"
+            routerLinkActive="bg-slate-900 text-white"
+            class="rounded-md px-3 py-1.5 text-slate-600 hover:bg-slate-100"
+          >
+            Taxes
+          </a>
+        </nav>
+      </div>
+
+      <div class="flex items-center gap-3">
+        @if (currentUser) {
+          <span class="text-sm text-slate-600">{{ currentUser.name }}</span>
+        }
+        <button
+          type="button"
+          (click)="logout()"
+          class="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100"
+        >
+          Logout
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+    <router-outlet></router-outlet>
+  </main>
+</div>

@@ -1,0 +1,91 @@
+<div class="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md">
+  <div class="relative aspect-square w-full overflow-hidden bg-slate-100">
+    @if (item.images.length > 0) {
+      <img
+        [src]="item.images[activeImageIndex()].url"
+        [alt]="item.name"
+        class="h-full w-full object-cover"
+        loading="lazy"
+      />
+    }
+    <span
+      class="absolute right-2 top-2 rounded-full px-2 py-1 text-xs font-semibold shadow-sm"
+      [class.bg-emerald-100]="item.is_available"
+      [class.text-emerald-700]="item.is_available"
+      [class.bg-rose-100]="!item.is_available"
+      [class.text-rose-700]="!item.is_available"
+    >
+      {{ item.is_available ? 'In stock' : 'Unavailable' }}
+    </span>
+  </div>
+
+  @if (item.images.length > 1) {
+    <div class="flex gap-1.5 overflow-x-auto border-b border-slate-100 bg-white px-3 py-2">
+      @for (image of item.images; track image.id; let i = $index) {
+        <button
+          type="button"
+          (click)="selectImage(i)"
+          class="h-10 w-10 shrink-0 overflow-hidden rounded-md border-2"
+          [class.border-slate-900]="activeImageIndex() === i"
+          [class.border-transparent]="activeImageIndex() !== i"
+        >
+          <img [src]="image.url" [alt]="item.name" class="h-full w-full object-cover" />
+        </button>
+      }
+    </div>
+  }
+
+  <div class="flex flex-1 flex-col gap-2 p-4">
+    <p class="text-xs font-medium uppercase tracking-wide text-slate-400">{{ item.category.name }}</p>
+    <h3 class="text-base font-semibold text-slate-900">{{ item.name }}</h3>
+
+    <div class="flex flex-wrap gap-x-3 gap-y-1 text-sm text-slate-500">
+      <span>{{ item.metal_type_label }}</span>
+      <span>&middot;</span>
+      <span>{{ item.weight_grams }} g</span>
+    </div>
+
+    <div class="mt-auto flex items-end justify-between pt-2">
+      <div>
+        <p class="text-xs text-slate-400">Final price</p>
+        <p class="text-lg font-bold text-slate-900">
+          &#8377;{{ item.price_breakdown.final_price | number: '1.0-2' }}
+        </p>
+      </div>
+      <button
+        type="button"
+        (click)="toggleBreakdown()"
+        class="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
+      >
+        {{ isBreakdownExpanded() ? 'Hide details' : 'Price details' }}
+      </button>
+    </div>
+
+    @if (isBreakdownExpanded()) {
+      <div class="mt-2 space-y-1 rounded-md bg-slate-50 p-3 text-xs text-slate-600">
+        <div class="flex justify-between">
+          <span>Metal cost</span>
+          <span>&#8377;{{ item.price_breakdown.metal_cost | number: '1.0-2' }}</span>
+        </div>
+        <div class="flex justify-between">
+          <span>Making charges</span>
+          <span>&#8377;{{ item.price_breakdown.making_charges | number: '1.0-2' }}</span>
+        </div>
+        @for (taxLine of item.price_breakdown.tax_lines; track taxLine.tax_id) {
+          <div class="flex justify-between">
+            <span>{{ taxLine.name }} ({{ taxLine.percentage }}%)</span>
+            <span>&#8377;{{ taxLine.amount | number: '1.0-2' }}</span>
+          </div>
+        }
+        <div class="flex justify-between">
+          <span>Shipping</span>
+          <span>&#8377;{{ item.price_breakdown.shipping_charges | number: '1.0-2' }}</span>
+        </div>
+        <div class="flex justify-between border-t border-slate-200 pt-1 font-semibold text-slate-800">
+          <span>Final price</span>
+          <span>&#8377;{{ item.price_breakdown.final_price | number: '1.0-2' }}</span>
+        </div>
+      </div>
+    }
+  </div>
+</div>

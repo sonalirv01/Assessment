@@ -1,0 +1,46 @@
+<div class="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+  <div class="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+    <h1 class="text-xl font-bold text-slate-900">Admin Login</h1>
+    <p class="mt-1 text-sm text-slate-500">Sign in to manage the jewellery catalog.</p>
+
+    <form [formGroup]="loginForm" (ngSubmit)="submit()" class="mt-6 space-y-4">
+      <div>
+        <label class="mb-1 block text-sm font-medium text-slate-700" for="email">Email</label>
+        <input
+          id="email"
+          type="email"
+          formControlName="email"
+          class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+        />
+        @if (loginForm.get('email')?.invalid && loginForm.get('email')?.touched) {
+          <p class="mt-1 text-xs text-rose-600">A valid email is required.</p>
+        }
+      </div>
+
+      <div>
+        <label class="mb-1 block text-sm font-medium text-slate-700" for="password">Password</label>
+        <input
+          id="password"
+          type="password"
+          formControlName="password"
+          class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+        />
+        @if (loginForm.get('password')?.invalid && loginForm.get('password')?.touched) {
+          <p class="mt-1 text-xs text-rose-600">Password is required.</p>
+        }
+      </div>
+
+      @if (errorMessage()) {
+        <p class="rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-700">{{ errorMessage() }}</p>
+      }
+
+      <button
+        type="submit"
+        [disabled]="isSubmitting()"
+        class="w-full rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+      >
+        {{ isSubmitting() ? 'Signing in...' : 'Sign in' }}
+      </button>
+    </form>
+  </div>
+</div>

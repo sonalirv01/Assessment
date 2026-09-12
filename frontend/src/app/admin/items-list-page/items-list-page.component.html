@@ -1,0 +1,194 @@
+<div class="flex flex-wrap items-center justify-between gap-3">
+  <h1 class="text-xl font-bold text-slate-900">Items</h1>
+  <a
+    routerLink="/admin/items/new"
+    class="rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+  >
+    Add item
+  </a>
+</div>
+
+<section class="mt-4 grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-6">
+  <input
+    type="text"
+    placeholder="Search by name..."
+    [ngModel]="searchTerm"
+    (ngModelChange)="onSearchInputChanged($event)"
+    class="col-span-1 rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none sm:col-span-2"
+  />
+
+  <select
+    [(ngModel)]="selectedCategoryId"
+    (ngModelChange)="onFilterChanged()"
+    class="rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+  >
+    <option [ngValue]="null">All categories</option>
+    @for (category of categories(); track category.id) {
+      <option [ngValue]="category.id">{{ category.name }}</option>
+    }
+  </select>
+
+  <select
+    [(ngModel)]="selectedMetalType"
+    (ngModelChange)="onFilterChanged()"
+    class="rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+  >
+    <option value="">All metal types</option>
+    @for (metalType of metalTypes(); track metalType.key) {
+      <option [value]="metalType.key">{{ metalType.label }}</option>
+    }
+  </select>
+
+  <select
+    [(ngModel)]="selectedAvailability"
+    (ngModelChange)="onFilterChanged()"
+    class="rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+  >
+    <option value="">All availability</option>
+    <option value="true">Available</option>
+    <option value="false">Unavailable</option>
+  </select>
+
+  <select
+    [(ngModel)]="selectedSortIndex"
+    (ngModelChange)="onFilterChanged()"
+    class="rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+  >
+    @for (option of sortOptions; track option.label; let i = $index) {
+      <option [ngValue]="i">Sort: {{ option.label }}</option>
+    }
+  </select>
+
+  <input
+    type="number"
+    min="0"
+    placeholder="Min price"
+    [(ngModel)]="minPrice"
+    (ngModelChange)="onFilterChanged()"
+    class="rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+  />
+
+  <input
+    type="number"
+    min="0"
+    placeholder="Max price"
+    [(ngModel)]="maxPrice"
+    (ngModelChange)="onFilterChanged()"
+    class="rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+  />
+</section>
+
+@if (errorMessage()) {
+  <p class="mt-4 rounded-md bg-rose-50 px-4 py-2 text-sm text-rose-700">{{ errorMessage() }}</p>
+}
+
+<div class="mt-4 overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+  <table class="min-w-full divide-y divide-slate-200 text-sm">
+    <thead class="bg-slate-50">
+      <tr>
+        <th class="px-4 py-3 text-left font-semibold text-slate-600">Image</th>
+        <th class="px-4 py-3 text-left font-semibold text-slate-600">Name</th>
+        <th class="px-4 py-3 text-left font-semibold text-slate-600">Category</th>
+        <th class="px-4 py-3 text-left font-semibold text-slate-600">Metal</th>
+        <th class="px-4 py-3 text-left font-semibold text-slate-600">Final price</th>
+        <th class="px-4 py-3 text-left font-semibold text-slate-600">Available</th>
+        <th class="px-4 py-3 text-right font-semibold text-slate-600">Actions</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      @if (isLoading()) {
+        <tr>
+          <td colspan="7" class="px-4 py-6 text-center text-slate-500">Loading items...</td>
+        </tr>
+      } @else if (items().length === 0) {
+        <tr>
+          <td colspan="7" class="px-4 py-6 text-center text-slate-500">No items found.</td>
+        </tr>
+      } @else {
+        @for (item of items(); track item.id) {
+          <tr>
+            <td class="px-4 py-3">
+              @if (item.images.length > 0) {
+                <img [src]="item.images[0].url" [alt]="item.name" class="h-10 w-10 rounded-md object-cover" />
+              } @else {
+                <div class="h-10 w-10 rounded-md bg-slate-100"></div>
+              }
+            </td>
+            <td class="px-4 py-3 font-medium text-slate-900">{{ item.name }}</td>
+            <td class="px-4 py-3 text-slate-600">{{ item.category.name }}</td>
+            <td class="px-4 py-3 text-slate-600">{{ item.metal_type_label }}</td>
+            <td class="px-4 py-3 text-slate-600">&#8377;{{ item.price_breakdown.final_price | number: '1.0-2' }}</td>
+            <td class="px-4 py-3">
+              <span
+                class="rounded-full px-2 py-1 text-xs font-semibold"
+                [class.bg-emerald-100]="item.is_available"
+                [class.text-emerald-700]="item.is_available"
+                [class.bg-rose-100]="!item.is_available"
+                [class.text-rose-700]="!item.is_available"
+              >
+                {{ item.is_available ? 'Available' : 'Unavailable' }}
+              </span>
+            </td>
+            <td class="px-4 py-3 text-right">
+              @if (canDelete && itemPendingDeleteId() === item.id) {
+                <span class="mr-2 text-xs text-slate-500">Delete this item?</span>
+                <button
+                  type="button"
+                  (click)="confirmDelete(item.id)"
+                  class="mr-2 rounded-md bg-rose-600 px-2 py-1 text-xs font-semibold text-white hover:bg-rose-700"
+                >
+                  Confirm
+                </button>
+                <button
+                  type="button"
+                  (click)="cancelDelete()"
+                  class="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+              } @else {
+                <a
+                  [routerLink]="['/admin/items', item.id, 'edit']"
+                  class="mr-2 rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
+                >
+                  Edit
+                </a>
+                @if (canDelete) {
+                  <button
+                    type="button"
+                    (click)="requestDelete(item.id)"
+                    class="rounded-md border border-rose-300 px-2 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50"
+                  >
+                    Delete
+                  </button>
+                }
+              }
+            </td>
+          </tr>
+        }
+      }
+    </tbody>
+  </table>
+</div>
+
+@if (meta() && meta()!.last_page > 1) {
+  <div class="mt-6 flex items-center justify-center gap-2">
+    <button
+      type="button"
+      (click)="goToPage(currentPage - 1)"
+      [disabled]="currentPage === 1"
+      class="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 disabled:opacity-40"
+    >
+      Previous
+    </button>
+    <span class="text-sm text-slate-600">Page {{ meta()!.current_page }} of {{ meta()!.last_page }}</span>
+    <button
+      type="button"
+      (click)="goToPage(currentPage + 1)"
+      [disabled]="currentPage === meta()!.last_page"
+      class="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 disabled:opacity-40"
+    >
+      Next
+    </button>
+  </div>
+}

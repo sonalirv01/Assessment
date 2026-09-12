@@ -1,0 +1,81 @@
+<h1 class="text-xl font-bold text-slate-900">Categories</h1>
+
+@if (errorMessage()) {
+  <p class="mt-4 rounded-md bg-rose-50 px-4 py-2 text-sm text-rose-700">{{ errorMessage() }}</p>
+}
+
+<div class="mt-4 flex flex-wrap gap-2 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+  <input
+    type="text"
+    placeholder="New category name"
+    [(ngModel)]="newCategoryName"
+    class="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+  />
+  <button
+    type="button"
+    (click)="createCategory()"
+    [disabled]="isCreating()"
+    class="rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+  >
+    Add category
+  </button>
+</div>
+
+<div class="mt-4 divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white shadow-sm">
+  @if (isLoading()) {
+    <p class="px-4 py-4 text-sm text-slate-500">Loading categories...</p>
+  } @else if (categories().length === 0) {
+    <p class="px-4 py-4 text-sm text-slate-500">No categories yet.</p>
+  } @else {
+    @for (category of categories(); track category.id) {
+      <div class="flex items-center justify-between gap-3 px-4 py-3">
+        @if (editingCategoryId() === category.id) {
+          <input
+            type="text"
+            [(ngModel)]="editingCategoryName"
+            class="flex-1 rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:border-slate-500 focus:outline-none"
+          />
+          <div class="flex gap-2">
+            <button
+              type="button"
+              (click)="saveEditing(category.id)"
+              class="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800"
+            >
+              Save
+            </button>
+            <button
+              type="button"
+              (click)="cancelEditing()"
+              class="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+            >
+              Cancel
+            </button>
+          </div>
+        } @else {
+          <div>
+            <p class="text-sm font-medium text-slate-900">{{ category.name }}</p>
+            <p class="text-xs text-slate-400">{{ category.slug }}</p>
+          </div>
+          <div class="flex gap-2">
+            <button
+              type="button"
+              (click)="startEditing(category)"
+              class="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+            >
+              Rename
+            </button>
+            @if (canDelete) {
+              <button
+                type="button"
+                (click)="deleteCategory(category.id)"
+                class="rounded-md border border-rose-300 px-3 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50"
+              >
+                Delete
+              </button>
+            }
+          </div>
+        }
+      </div>
+    }
+  }
+</div>

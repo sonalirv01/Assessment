@@ -1,0 +1,59 @@
+<h1 class="text-xl font-bold text-slate-900">Metal Rates</h1>
+<p class="mt-1 text-sm text-slate-500">Today's price per gram used to calculate item prices.</p>
+
+@if (errorMessage()) {
+  <p class="mt-4 rounded-md bg-rose-50 px-4 py-2 text-sm text-rose-700">{{ errorMessage() }}</p>
+}
+
+<div class="mt-4 divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white shadow-sm">
+  @if (isLoading()) {
+    <p class="px-4 py-4 text-sm text-slate-500">Loading metal rates...</p>
+  } @else {
+    @for (metalType of metalTypes(); track metalType.key) {
+      <div class="flex items-center justify-between gap-3 px-4 py-3">
+        <div>
+          <p class="text-sm font-medium text-slate-900">{{ metalType.label }}</p>
+          <p class="text-xs text-slate-400">Updated {{ metalType.updated_at | date: 'medium' }}</p>
+        </div>
+
+        @if (editingKey() === metalType.key) {
+          <div class="flex items-center gap-2">
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              [(ngModel)]="editingPricePerGram"
+              class="w-32 rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:border-slate-500 focus:outline-none"
+            />
+            <button
+              type="button"
+              (click)="saveRate(metalType.key)"
+              [disabled]="isSaving()"
+              class="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+            >
+              Save
+            </button>
+            <button
+              type="button"
+              (click)="cancelEditing()"
+              class="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+            >
+              Cancel
+            </button>
+          </div>
+        } @else {
+          <div class="flex items-center gap-3">
+            <span class="text-sm font-semibold text-slate-800">&#8377;{{ metalType.price_per_gram }}/g</span>
+            <button
+              type="button"
+              (click)="startEditing(metalType)"
+              class="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+            >
+              Update rate
+            </button>
+          </div>
+        }
+      </div>
+    }
+  }
+</div>
