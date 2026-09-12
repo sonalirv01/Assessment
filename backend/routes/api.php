@@ -24,26 +24,24 @@ Route::get('/categories', [CategoryController::class, 'index']);
 Route::get('/metal-types', [MetalPriceController::class, 'index']);
 Route::get('/taxes', [TaxController::class, 'index']);
 
-// --- Catalogue management, open to admins and managers -------------------
-// Managers may create/update catalogue data but may not delete it.
-Route::middleware(['auth:sanctum', 'catalogue.manage'])->group(function () {
+// --- Catalogue management ------------------------------------------------
+// Only authentication is enforced here; who's allowed to create, update, or
+// delete each resource is decided by CataloguePolicy (admins and managers
+// may write, only admins may delete).
+Route::middleware('auth:sanctum')->group(function () {
     Route::post('/items', [JewelleryItemController::class, 'store']);
     Route::put('/items/{item}', [JewelleryItemController::class, 'update']);
+    Route::delete('/items/{item}', [JewelleryItemController::class, 'destroy']);
     Route::post('/items/{item}/images', [JewelleryItemImageController::class, 'store']);
+    Route::delete('/items/{item}/images/{image}', [JewelleryItemImageController::class, 'destroy']);
 
     Route::post('/categories', [CategoryController::class, 'store']);
     Route::put('/categories/{category}', [CategoryController::class, 'update']);
+    Route::delete('/categories/{category}', [CategoryController::class, 'destroy']);
 
     Route::put('/metal-types/{metalPrice:key}', [MetalPriceController::class, 'update']);
 
     Route::post('/taxes', [TaxController::class, 'store']);
     Route::put('/taxes/{tax}', [TaxController::class, 'update']);
-});
-
-// --- Admin-only catalogue management (destructive actions) ---------------
-Route::middleware(['auth:sanctum', 'admin'])->group(function () {
-    Route::delete('/items/{item}', [JewelleryItemController::class, 'destroy']);
-    Route::delete('/items/{item}/images/{image}', [JewelleryItemImageController::class, 'destroy']);
-    Route::delete('/categories/{category}', [CategoryController::class, 'destroy']);
     Route::delete('/taxes/{tax}', [TaxController::class, 'destroy']);
 });

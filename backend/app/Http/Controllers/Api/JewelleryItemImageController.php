@@ -13,6 +13,8 @@ class JewelleryItemImageController extends Controller
 {
     public function store(StoreJewelleryItemImagesRequest $request, JewelleryItem $item)
     {
+        $this->authorize('create', JewelleryItemImage::class);
+
         $nextSortOrder = ($item->images()->max('sort_order') ?? -1) + 1;
 
         // seperate row per photo so a single one can be deleted later without
@@ -34,6 +36,8 @@ class JewelleryItemImageController extends Controller
 
     public function destroy(JewelleryItem $item, JewelleryItemImage $image)
     {
+        $this->authorize('delete', $image);
+
         // TODO: JewelleryItem::destroy() doesn't currently loop over images to
         // clean up their files before the cascade delete removes the rows —
         // fine for now, but worth fixing before this touches real storage.

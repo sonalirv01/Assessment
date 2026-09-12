@@ -80,6 +80,8 @@ class JewelleryItemController extends Controller
 
     public function store(StoreJewelleryItemRequest $request)
     {
+        $this->authorize('create', JewelleryItem::class);
+
         $data = $request->validated();
         $taxIds = $data['tax_ids'] ?? [];
         unset($data['tax_ids']);
@@ -93,6 +95,8 @@ class JewelleryItemController extends Controller
 
     public function update(UpdateJewelleryItemRequest $request, JewelleryItem $item)
     {
+        $this->authorize('update', $item);
+
         $data = $request->validated();
         $taxIds = $data['tax_ids'] ?? [];
         unset($data['tax_ids']);
@@ -106,6 +110,8 @@ class JewelleryItemController extends Controller
 
     public function destroy(JewelleryItem $item)
     {
+        $this->authorize('delete', $item);
+
         $item->delete();
 
         return response()->json([

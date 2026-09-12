@@ -8,7 +8,7 @@ class StoreJewelleryItemImagesRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        // Route-level admin middleware has already gated access here.
+        // The controller checks CataloguePolicy before using this data.
         return true;
     }
 

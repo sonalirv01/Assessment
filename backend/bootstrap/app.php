@@ -1,10 +1,9 @@
 <?php
 
-use App\Http\Middleware\EnsureUserCanManageCatalogue;
-use App\Http\Middleware\EnsureUserIsAdmin;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 $app = Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -14,11 +13,6 @@ $app = Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        $middleware->alias([
-            'admin' => EnsureUserIsAdmin::class,
-            'catalogue.manage' => EnsureUserCanManageCatalogue::class,
-        ]);
-
         // This is a pure JSON API with no "login" web route to redirect
         // guests to, so never try to build one — just let unauthenticated
         // requests fall through to a 401 JSON response.
@@ -30,6 +24,19 @@ $app = Application::configure(basePath: dirname(__DIR__))
         // than Laravel's default HTML error page.
         $exceptions->shouldRenderJsonWhen(function ($request, $throwable) {
             return $request->is('api/*') || $request->expectsJson();
+        });
+
+        // Policy denials arrive here already converted to AccessDeniedHttpException
+        // (Laravel's handler does that conversion before dispatching to custom
+        // renderers), so this has to match that type, not AuthorizationException,
+        // to return the plain {"message": ...} the policy set instead of a full
+        // debug trace.
+        $exceptions->render(function (AccessDeniedHttpException $e, $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return response()->json([
+                    'message' => $e->getMessage(),
+                ], 403);
+            }
         });
     })->create();
 

@@ -16,6 +16,8 @@ class MetalPriceController extends Controller
 
     public function update(UpdateMetalPriceRequest $request, MetalPrice $metalPrice)
     {
+        $this->authorize('update', $metalPrice);
+
         $metalPrice->update($request->validated());
 
         return new MetalPriceResource($metalPrice);

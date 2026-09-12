@@ -17,6 +17,8 @@ class TaxController extends Controller
 
     public function store(StoreTaxRequest $request)
     {
+        $this->authorize('create', Tax::class);
+
         $tax = Tax::create($request->validated());
 
         return (new TaxResource($tax))->response()->setStatusCode(201);
@@ -24,6 +26,8 @@ class TaxController extends Controller
 
     public function update(UpdateTaxRequest $request, Tax $tax)
     {
+        $this->authorize('update', $tax);
+
         $tax->update($request->validated());
 
         return new TaxResource($tax);
@@ -31,6 +35,8 @@ class TaxController extends Controller
 
     public function destroy(Tax $tax)
     {
+        $this->authorize('delete', $tax);
+
         $tax->delete();
 
         return response()->json([
