@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::table('users', function (Blueprint $table) {
             // Only two roles exist in this demo: an admin who manages the catalogue
             // through the admin panel, and a customer who only browses it.
-            $table->enum('role', ['admin', 'customer'])->default('customer')->after('email');
+            $table->enum('role', ['admin', 'customer','manager'])->default('customer')->after('email');
         });
     }
 
