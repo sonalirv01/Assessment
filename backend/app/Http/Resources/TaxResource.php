@@ -12,7 +12,9 @@ class TaxResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
-            'percentage' => (float) $this->percentage,
+            // Kept as the exact decimal string — see JewelleryItemResource
+            // for why this never gets cast to float.
+            'percentage' => (string) $this->percentage,
             'is_active' => $this->is_active,
         ];
     }

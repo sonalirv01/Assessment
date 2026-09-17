@@ -1,28 +1,31 @@
 import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { Subscription, forkJoin } from 'rxjs';
 import { ItemsService } from '../../core/services/items.service';
 import { CategoriesService } from '../../core/services/categories.service';
 import { MetalTypesService } from '../../core/services/metal-types.service';
 import { TaxesService } from '../../core/services/taxes.service';
+import { RealtimeService } from '../../core/services/realtime.service';
 import { Category } from '../../core/models/category.model';
 import { MetalType } from '../../core/models/metal-type.model';
 import { Tax } from '../../core/models/tax.model';
 import { ItemImage, ItemPayload } from '../../core/models/item.model';
 import { AuthService } from '../../core/services/auth.service';
+import * as Decimal from '../../core/utils/decimal.util';
 
 interface StagedImage {
   file: File;
   previewUrl: string;
 }
 
+// Decimal strings, not numbers — see core/utils/decimal.util.ts.
 interface PricePreview {
-  metalCost: number;
-  taxableAmount: number;
-  taxTotal: number;
-  finalPrice: number;
+  metalCost: string;
+  taxableAmount: string;
+  taxTotal: string;
+  finalPrice: string;
 }
 
 @Component({
@@ -34,14 +37,28 @@ interface PricePreview {
 export class ItemFormPageComponent implements OnInit, OnDestroy {
   private formBuilder = inject(FormBuilder);
 
+  // Mirrors backend/app/Http/Requests/StoreJewelleryItemRequest.php exactly,
+  // so a violation surfaces here before a round-trip to the server.
   itemForm = this.formBuilder.group({
-    name: ['', [Validators.required]],
-    description: ['', [Validators.required]],
+    name: ['', [Validators.required, Validators.maxLength(255)]],
+    description: ['', [Validators.required, Validators.maxLength(5000)]],
     category_id: this.formBuilder.control<number | null>(null, [Validators.required]),
     metal_type: ['', [Validators.required]],
-    weight_grams: this.formBuilder.control<number | null>(null, [Validators.required, Validators.min(0.01)]),
-    making_charges: this.formBuilder.control<number | null>(0, [Validators.required, Validators.min(0)]),
-    shipping_charges: this.formBuilder.control<number | null>(0, [Validators.required, Validators.min(0)]),
+    weight_grams: this.formBuilder.control<number | null>(null, [
+      Validators.required,
+      Validators.min(0.01),
+      Validators.max(10000),
+    ]),
+    making_charges: this.formBuilder.control<number | null>(0, [
+      Validators.required,
+      Validators.min(0),
+      Validators.max(10000000),
+    ]),
+    shipping_charges: this.formBuilder.control<number | null>(0, [
+      Validators.required,
+      Validators.min(0),
+      Validators.max(10000000),
+    ]),
     is_available: [true],
   });
 
@@ -65,13 +82,16 @@ export class ItemFormPageComponent implements OnInit, OnDestroy {
   loadError = signal('');
   fieldErrors = signal<Record<string, string[]>>({});
 
-  pricePreview = signal<PricePreview>({ metalCost: 0, taxableAmount: 0, taxTotal: 0, finalPrice: 0 });
+  pricePreview = signal<PricePreview>({ metalCost: '0.00', taxableAmount: '0.00', taxTotal: '0.00', finalPrice: '0.00' });
+
+  private metalPriceSubscription?: Subscription;
 
   constructor(
     private itemsService: ItemsService,
     private categoriesService: CategoriesService,
     private metalTypesService: MetalTypesService,
     private taxesService: TaxesService,
+    private realtimeService: RealtimeService,
     private route: ActivatedRoute,
     private router: Router,
     private authService: AuthService
@@ -83,6 +103,15 @@ export class ItemFormPageComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.itemForm.valueChanges.subscribe(() => this.recalculatePricePreview());
+
+    // A rate change from another tab should update this preview immediately
+    // — otherwise an admin could save an item priced off a stale rate.
+    this.metalPriceSubscription = this.realtimeService.onMetalPriceUpdated().subscribe((updated) => {
+      this.metalTypes.update((types) =>
+        types.map((type) => (type.key === updated.key ? updated : type))
+      );
+      this.recalculatePricePreview();
+    });
 
     forkJoin({
       categories: this.categoriesService.getCategories(),
@@ -107,9 +136,12 @@ export class ItemFormPageComponent implements OnInit, OnDestroy {
             description: item.description,
             category_id: item.category.id,
             metal_type: item.metal_type,
-            weight_grams: item.weight_grams,
-            making_charges: item.making_charges,
-            shipping_charges: item.shipping_charges,
+            // item.*_charges/weight_grams are the API's exact decimal
+            // strings; converting to a number here only feeds a raw edit
+            // input, not further arithmetic (see decimal.util.ts).
+            weight_grams: Number(item.weight_grams),
+            making_charges: Number(item.making_charges),
+            shipping_charges: Number(item.shipping_charges),
             is_available: item.is_available,
           });
           this.existingImages.set(item.images);
@@ -129,6 +161,7 @@ export class ItemFormPageComponent implements OnInit, OnDestroy {
     for (const staged of this.stagedImages()) {
       URL.revokeObjectURL(staged.previewUrl);
     }
+    this.metalPriceSubscription?.unsubscribe();
   }
 
   onFilesSelected(event: Event): void {
@@ -192,9 +225,50 @@ export class ItemFormPageComponent implements OnInit, OnDestroy {
     this.recalculatePricePreview();
   }
 
+  private static readonly FIELD_LABELS: Record<string, string> = {
+    name: 'Name',
+    description: 'Description',
+    category_id: 'Category',
+    metal_type: 'Metal type',
+    weight_grams: 'Weight',
+    making_charges: 'Making charges',
+    shipping_charges: 'Shipping charges',
+  };
+
+  // Server-side 422 errors take priority (they're the source of truth); when
+  // there are none, fall back to this field's own client-side Validators
+  // errors once the user has interacted with it, so "Save" with an empty
+  // form shows a message instead of silently doing nothing.
   fieldError(fieldName: string): string | null {
-    const errors = this.fieldErrors()[fieldName];
-    return errors && errors.length > 0 ? errors[0] : null;
+    const serverErrors = this.fieldErrors()[fieldName];
+    if (serverErrors && serverErrors.length > 0) {
+      return serverErrors[0];
+    }
+
+    const control = this.itemForm.get(fieldName);
+    if (!control || !control.touched || !control.errors) {
+      return null;
+    }
+
+    return this.describeValidationError(fieldName, control.errors);
+  }
+
+  private describeValidationError(fieldName: string, errors: ValidationErrors): string {
+    const label = ItemFormPageComponent.FIELD_LABELS[fieldName] ?? fieldName;
+
+    if (errors['required']) {
+      return `${label} is required.`;
+    }
+    if (errors['maxlength']) {
+      return `${label} must be at most ${errors['maxlength'].requiredLength} characters.`;
+    }
+    if (errors['min']) {
+      return `${label} must be at least ${errors['min'].min}.`;
+    }
+    if (errors['max']) {
+      return `${label} must be at most ${errors['max'].max}.`;
+    }
+    return `${label} is invalid.`;
   }
 
   submit(): void {
@@ -251,18 +325,24 @@ export class ItemFormPageComponent implements OnInit, OnDestroy {
   private recalculatePricePreview(): void {
     const formValues = this.itemForm.getRawValue();
     const selectedMetalType = this.metalTypes().find((metalType) => metalType.key === formValues.metal_type);
-    const pricePerGram = selectedMetalType?.price_per_gram ?? 0;
-    const weightGrams = formValues.weight_grams ?? 0;
-    const makingCharges = formValues.making_charges ?? 0;
-    const shippingCharges = formValues.shipping_charges ?? 0;
+    const pricePerGram = selectedMetalType?.price_per_gram ?? '0';
+    const weightGrams = Decimal.fromInput(formValues.weight_grams);
+    const makingCharges = Decimal.fromInput(formValues.making_charges);
+    const shippingCharges = Decimal.fromInput(formValues.shipping_charges);
 
-    const metalCost = weightGrams * pricePerGram;
-    const taxableAmount = metalCost + makingCharges;
-    const taxTotal = this.selectedTaxIds().reduce((runningTotal, taxId) => {
-      const tax = this.taxes().find((candidateTax) => candidateTax.id === taxId);
-      return tax ? runningTotal + taxableAmount * (tax.percentage / 100) : runningTotal;
-    }, 0);
-    const finalPrice = taxableAmount + taxTotal + shippingCharges;
+    // Mirrors backend/app/Services/JewelleryPriceCalculator.php exactly:
+    // decimal-string arithmetic throughout, shipping included in the
+    // taxable amount, so this preview never drifts from what gets saved.
+    const metalCost = Decimal.round(Decimal.mul(weightGrams, pricePerGram));
+    const taxableAmount = Decimal.round(Decimal.add(Decimal.add(metalCost, makingCharges), shippingCharges));
+
+    const taxAmounts = this.selectedTaxIds()
+      .map((taxId) => this.taxes().find((candidateTax) => candidateTax.id === taxId))
+      .filter((tax): tax is NonNullable<typeof tax> => !!tax)
+      .map((tax) => Decimal.percentOf(taxableAmount, tax.percentage));
+    const taxTotal = Decimal.sum(taxAmounts);
+
+    const finalPrice = Decimal.round(Decimal.add(taxableAmount, taxTotal));
 
     this.pricePreview.set({ metalCost, taxableAmount, taxTotal, finalPrice });
   }

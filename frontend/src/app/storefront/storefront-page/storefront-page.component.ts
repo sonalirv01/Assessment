@@ -5,6 +5,7 @@ import { Subject, Subscription, debounceTime, distinctUntilChanged, forkJoin } f
 import { ItemsService } from '../../core/services/items.service';
 import { CategoriesService } from '../../core/services/categories.service';
 import { MetalTypesService } from '../../core/services/metal-types.service';
+import { RealtimeService } from '../../core/services/realtime.service';
 import { JewelleryItem, ItemsMeta, SortDirection, SortField } from '../../core/models/item.model';
 import { Category } from '../../core/models/category.model';
 import { MetalType } from '../../core/models/metal-type.model';
@@ -49,14 +50,26 @@ export class StorefrontPageComponent implements OnInit, OnDestroy {
 
   private searchTermChanges = new Subject<string>();
   private searchSubscription?: Subscription;
+  private metalPriceSubscription?: Subscription;
 
   constructor(
     private itemsService: ItemsService,
     private categoriesService: CategoriesService,
-    private metalTypesService: MetalTypesService
+    private metalTypesService: MetalTypesService,
+    private realtimeService: RealtimeService
   ) {}
 
   ngOnInit(): void {
+    // Every displayed item carries its own server-computed price_breakdown,
+    // so a live rate change needs a re-fetch, not just a local patch, for
+    // the prices actually shown on screen to update.
+    this.metalPriceSubscription = this.realtimeService.onMetalPriceUpdated().subscribe((updated) => {
+      this.metalTypes.update((types) =>
+        types.map((type) => (type.key === updated.key ? updated : type))
+      );
+      this.loadItems();
+    });
+
     // 300ms debounce keeps the catalog from re-fetching on every keystroke; distinctUntilChanged
     // skips a repeat request when the debounced value hasn't actually changed (e.g. type then backspace).
     this.searchSubscription = this.searchTermChanges
@@ -85,6 +98,7 @@ export class StorefrontPageComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.searchSubscription?.unsubscribe();
+    this.metalPriceSubscription?.unsubscribe();
   }
 
   onSearchInputChanged(value: string): void {

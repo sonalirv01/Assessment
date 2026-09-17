@@ -12,7 +12,9 @@ class MetalPriceResource extends JsonResource
         return [
             'key' => $this->key,
             'label' => $this->label,
-            'price_per_gram' => (float) $this->price_per_gram,
+            // Kept as the exact decimal string — see JewelleryItemResource
+            // for why this never gets cast to float.
+            'price_per_gram' => (string) $this->price_per_gram,
             'updated_at' => $this->updated_at,
         ];
     }

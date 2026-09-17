@@ -50,7 +50,10 @@ return [
     |
     */
 
-    'expiration' => null,
+    // Tokens never used to expire — a stolen bearer token from localStorage
+    // (see the Angular AuthService) would stay valid forever. Defaults to
+    // 8 hours; override per environment via SANCTUM_TOKEN_EXPIRATION.
+    'expiration' => env('SANCTUM_TOKEN_EXPIRATION', 480),
 
     /*
     |--------------------------------------------------------------------------

@@ -7,20 +7,39 @@ use App\Http\Requests\StoreJewelleryItemImagesRequest;
 use App\Http\Resources\JewelleryItemImageResource;
 use App\Models\JewelleryItem;
 use App\Models\JewelleryItemImage;
+use App\Services\ImageReencoder;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use RuntimeException;
 
 class JewelleryItemImageController extends Controller
 {
-    public function store(StoreJewelleryItemImagesRequest $request, JewelleryItem $item)
+    public function store(StoreJewelleryItemImagesRequest $request, JewelleryItem $item, ImageReencoder $reencoder)
     {
         $this->authorize('create', JewelleryItemImage::class);
+
+        // Re-encode every file up front and fail the whole request before
+        // writing anything, rather than persisting some images and
+        // rejecting others from the same batch.
+        $reencoded = [];
+        foreach ($request->file('images') as $index => $photo) {
+            try {
+                $reencoded[$index] = $reencoder->reencode($photo);
+            } catch (RuntimeException $e) {
+                throw ValidationException::withMessages([
+                    "images.{$index}" => [$e->getMessage()],
+                ]);
+            }
+        }
 
         $nextSortOrder = ($item->images()->max('sort_order') ?? -1) + 1;
 
         // seperate row per photo so a single one can be deleted later without
         // touching the rest
-        foreach ($request->file('images') as $index => $photo) {
-            $path = $photo->store('items', 'public');
+        foreach ($reencoded as $index => $file) {
+            $path = 'items/'.Str::uuid().'.'.$file['extension'];
+            Storage::disk('public')->put($path, $file['contents']);
 
             $item->images()->create([
                 'path' => $path,
@@ -38,9 +57,6 @@ class JewelleryItemImageController extends Controller
     {
         $this->authorize('delete', $image);
 
-        // TODO: JewelleryItem::destroy() doesn't currently loop over images to
-        // clean up their files before the cascade delete removes the rows —
-        // fine for now, but worth fixing before this touches real storage.
         abort_unless($image->jewellery_item_id === $item->id, 404);
 
         if ($image->path) {

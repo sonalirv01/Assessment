@@ -3,28 +3,31 @@ export interface ItemCategoryRef {
   name: string;
 }
 
+// Money and percentage values are exact decimal strings, never numbers —
+// see core/utils/decimal.util.ts for why (float can't represent these
+// exactly, and the API guarantees it never will either).
 export interface ItemTaxRef {
   id: number;
   name: string;
-  percentage: number;
+  percentage: string;
 }
 
 export interface TaxLine {
   tax_id: number;
   name: string;
-  percentage: number;
-  amount: number;
+  percentage: string;
+  amount: string;
 }
 
 export interface PriceBreakdown {
-  metal_rate_per_gram: number;
-  metal_cost: number;
-  making_charges: number;
-  taxable_amount: number;
+  metal_rate_per_gram: string;
+  metal_cost: string;
+  making_charges: string;
+  shipping_charges: string;
+  taxable_amount: string;
   tax_lines: TaxLine[];
-  tax_total: number;
-  shipping_charges: number;
-  final_price: number;
+  tax_total: string;
+  final_price: string;
 }
 
 export interface ItemImage {
@@ -40,9 +43,9 @@ export interface JewelleryItem {
   category: ItemCategoryRef;
   metal_type: string;
   metal_type_label: string;
-  weight_grams: number;
-  making_charges: number;
-  shipping_charges: number;
+  weight_grams: string;
+  making_charges: string;
+  shipping_charges: string;
   is_available: boolean;
   images: ItemImage[];
   taxes: ItemTaxRef[];

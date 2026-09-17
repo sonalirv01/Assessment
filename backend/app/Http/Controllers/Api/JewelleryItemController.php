@@ -3,18 +3,17 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ListJewelleryItemsRequest;
 use App\Http\Requests\StoreJewelleryItemRequest;
 use App\Http\Requests\UpdateJewelleryItemRequest;
 use App\Http\Resources\JewelleryItemResource;
 use App\Models\JewelleryItem;
 use App\Services\JewelleryPriceCalculator;
-use Illuminate\Http\Request;
+use App\Support\Decimal;
 
 class JewelleryItemController extends Controller
 {
-
-
-    public function index(Request $request, JewelleryPriceCalculator $calculator)
+    public function index(ListJewelleryItemsRequest $request, JewelleryPriceCalculator $calculator)
     {
         $perPage = max((int) $request->input('per_page', 12), 1);
         $page = max((int) $request->input('page', 1), 1);
@@ -37,25 +36,30 @@ class JewelleryItemController extends Controller
         ]);
 
         if ($request->filled('min_price')) {
-            $minPrice = (float) $request->input('min_price');
-            $withPrices = $withPrices->filter(fn ($entry) => $entry['final_price'] >= $minPrice);
+            $minPrice = (string) $request->input('min_price');
+            $withPrices = $withPrices->filter(fn ($entry) => Decimal::compare($entry['final_price'], $minPrice) >= 0);
         }
 
         if ($request->filled('max_price')) {
-            $maxPrice = (float) $request->input('max_price');
-            $withPrices = $withPrices->filter(fn ($entry) => $entry['final_price'] <= $maxPrice);
+            $maxPrice = (string) $request->input('max_price');
+            $withPrices = $withPrices->filter(fn ($entry) => Decimal::compare($entry['final_price'], $maxPrice) <= 0);
         }
 
         $sortBy = $request->input('sort_by', 'name');
         $sortDescending = $request->input('sort_dir', 'asc') === 'desc';
 
+        // final_price is a decimal string, not a float, so it's compared via
+        // bcmath (Decimal::compare) rather than PHP's native <=> — a plain
+        // string sort would put "10.00" before "9.00".
         $sorted = $withPrices
-            ->sortBy(
-                fn ($entry) => $sortBy === 'price' ? $entry['final_price'] : strtolower($entry['item']->name),
-                SORT_REGULAR,
-                $sortDescending
-            )
+            ->sort(fn ($a, $b) => $sortBy === 'price'
+                ? Decimal::compare($a['final_price'], $b['final_price'])
+                : strcmp(strtolower($a['item']->name), strtolower($b['item']->name)))
             ->values();
+
+        if ($sortDescending) {
+            $sorted = $sorted->reverse()->values();
+        }
 
         $total = $sorted->count();
         $pageOfItems = $sorted->slice(($page - 1) * $perPage, $perPage)->pluck('item')->values();

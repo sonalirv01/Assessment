@@ -16,7 +16,12 @@ class StoreJewelleryItemImagesRequest extends FormRequest
     {
         return [
             'images' => ['required', 'array', 'min:1', 'max:10'],
-            'images.*' => ['image', 'mimes:jpeg,jpg,png,webp', 'max:5120'], // 5MB per file
+            'images.*' => [
+                'image',
+                'mimes:jpeg,jpg,png,webp',
+                'max:5120', // 5MB per file
+                'dimensions:max_width=4000,max_height=4000',
+            ],
         ];
     }
 }

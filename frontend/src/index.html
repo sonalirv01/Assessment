@@ -5,6 +5,30 @@
   <title>Jewellery Ecommerce</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    Scopes what this SPA is allowed to load/call. style-src needs
+    'unsafe-inline' because Angular's emulated view encapsulation injects a
+    <style> tag per component at runtime; there's no nonce/hash build step
+    here to avoid that. Update the localhost:8000/8080 origins alongside
+    environment.ts/environment.production.ts if the API or Reverb host ever
+    changes. frame-ancestors is deliberately omitted — browsers ignore that
+    directive when it's delivered via <meta> (it only works as a real HTTP
+    response header), so framing protection for this SPA has to come from
+    the hosting layer instead (e.g. an X-Frame-Options/CSP header set by
+    nginx or whatever serves the built files). images.unsplash.com is only
+    needed because the seeded demo items link straight to stock photos
+    instead of an uploaded file (see JewelleryItemSeeder) — drop it if the
+    catalogue only ever uses real uploads.
+  -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self';
+    style-src 'self' 'unsafe-inline';
+    font-src 'self';
+    img-src 'self' data: http://localhost:8000 https://images.unsplash.com;
+    connect-src 'self' http://localhost:8000 ws://localhost:8080 http://localhost:8080;
+    base-uri 'self';
+  ">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
 </head>
 <body>

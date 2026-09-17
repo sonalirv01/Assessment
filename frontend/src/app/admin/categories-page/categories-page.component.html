@@ -4,13 +4,20 @@
   <p class="mt-4 rounded-md bg-rose-50 px-4 py-2 text-sm text-rose-700">{{ errorMessage() }}</p>
 }
 
-<div class="mt-4 flex flex-wrap gap-2 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-  <input
-    type="text"
-    placeholder="New category name"
-    [(ngModel)]="newCategoryName"
-    class="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-  />
+<div class="mt-4 flex flex-wrap items-start gap-2 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+  <div class="flex-1">
+    <input
+      type="text"
+      placeholder="New category name"
+      [(ngModel)]="newCategoryName"
+      maxlength="255"
+      required
+      class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+    />
+    @if (fieldError('name')) {
+      <p class="mt-1 text-xs text-rose-600">{{ fieldError('name') }}</p>
+    }
+  </div>
   <button
     type="button"
     (click)="createCategory()"
@@ -30,11 +37,18 @@
     @for (category of categories(); track category.id) {
       <div class="flex items-center justify-between gap-3 px-4 py-3">
         @if (editingCategoryId() === category.id) {
-          <input
-            type="text"
-            [(ngModel)]="editingCategoryName"
-            class="flex-1 rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:border-slate-500 focus:outline-none"
-          />
+          <div class="flex-1">
+            <input
+              type="text"
+              [(ngModel)]="editingCategoryName"
+              maxlength="255"
+              required
+              class="w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:border-slate-500 focus:outline-none"
+            />
+            @if (fieldError('name')) {
+              <p class="mt-1 text-xs text-rose-600">{{ fieldError('name') }}</p>
+            }
+          </div>
           <div class="flex gap-2">
             <button
               type="button"

@@ -1,6 +1,7 @@
 export interface MetalType {
   key: string;
   label: string;
-  price_per_gram: number;
+  // Exact decimal string from the API — see core/utils/decimal.util.ts.
+  price_per_gram: string;
   updated_at: string;
 }

@@ -3,13 +3,16 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 $app = Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
         api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
+        channels: __DIR__.'/../routes/channels.php',
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
@@ -17,6 +20,14 @@ $app = Application::configure(basePath: dirname(__DIR__))
         // guests to, so never try to build one — just let unauthenticated
         // requests fall through to a 401 JSON response.
         $middleware->redirectGuestsTo(fn () => null);
+
+        // Every api/* route gets a baseline rate limit (the 'api' limiter,
+        // defined in AppServiceProvider); write routes layer a tighter
+        // 'writes' limiter on top directly in routes/api.php, and login
+        // keeps its own much tighter throttle.
+        $middleware->throttleApi();
+
+        $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         // The Angular client doesn't always send an Accept: application/json
@@ -36,6 +47,30 @@ $app = Application::configure(basePath: dirname(__DIR__))
                 return response()->json([
                     'message' => $e->getMessage(),
                 ], 403);
+            }
+        });
+
+        // Route model binding failures (Laravel's handler converts the
+        // underlying ModelNotFoundException to this before dispatching to
+        // renderers, same as the AccessDeniedHttpException case above) —
+        // a fixed message, not $e->getMessage(), since that string names
+        // the Eloquent model class internally.
+        $exceptions->render(function (NotFoundHttpException $e, $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Resource not found.',
+                ], 404);
+            }
+        });
+
+        // Include how long to wait in the body, not just the Retry-After
+        // header, so the Angular client can show it without reading headers.
+        $exceptions->render(function (ThrottleRequestsException $e, $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Too many requests. Please slow down and try again shortly.',
+                    'retry_after' => $e->getHeaders()['Retry-After'] ?? null,
+                ], 429);
             }
         });
     })->create();

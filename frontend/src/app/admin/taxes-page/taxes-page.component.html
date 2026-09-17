@@ -11,19 +11,28 @@
       type="text"
       placeholder="e.g. GST"
       [(ngModel)]="newTaxName"
+      maxlength="255"
+      required
       class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
     />
+    @if (fieldError('name')) {
+      <p class="mt-1 text-xs text-rose-600">{{ fieldError('name') }}</p>
+    }
   </div>
   <div>
     <label class="mb-1 block text-xs font-medium text-slate-600">Percentage</label>
     <input
       type="number"
       min="0"
+      max="100"
       step="0.01"
       placeholder="3"
       [(ngModel)]="newTaxPercentage"
       class="w-28 rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
     />
+    @if (fieldError('percentage')) {
+      <p class="mt-1 text-xs text-rose-600">{{ fieldError('percentage') }}</p>
+    }
   </div>
   <label class="flex items-center gap-2 pb-2 text-sm text-slate-600">
     <input type="checkbox" [(ngModel)]="newTaxIsActive" class="h-4 w-4 rounded border-slate-300" />
@@ -52,11 +61,14 @@
             <input
               type="text"
               [(ngModel)]="editingTaxName"
+              maxlength="255"
+              required
               class="flex-1 rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:border-slate-500 focus:outline-none"
             />
             <input
               type="number"
               min="0"
+              max="100"
               step="0.01"
               [(ngModel)]="editingTaxPercentage"
               class="w-24 rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:border-slate-500 focus:outline-none"
@@ -79,6 +91,9 @@
             >
               Cancel
             </button>
+            @if (fieldError('name') || fieldError('percentage')) {
+              <p class="w-full text-xs text-rose-600">{{ fieldError('name') || fieldError('percentage') }}</p>
+            }
           </div>
         } @else {
           <div class="flex items-center gap-3">

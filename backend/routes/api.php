@@ -28,7 +28,7 @@ Route::get('/taxes', [TaxController::class, 'index']);
 // Only authentication is enforced here; who's allowed to create, update, or
 // delete each resource is decided by CataloguePolicy (admins and managers
 // may write, only admins may delete).
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'throttle:writes'])->group(function () {
     Route::post('/items', [JewelleryItemController::class, 'store']);
     Route::put('/items/{item}', [JewelleryItemController::class, 'update']);
     Route::delete('/items/{item}', [JewelleryItemController::class, 'destroy']);

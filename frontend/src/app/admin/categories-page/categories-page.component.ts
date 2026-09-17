@@ -18,6 +18,7 @@ export class CategoriesPageComponent implements OnInit {
 
   newCategoryName = '';
   isCreating = signal(false);
+  fieldErrors = signal<Record<string, string[]>>({});
 
   editingCategoryId = signal<number | null>(null);
   editingCategoryName = '';
@@ -29,6 +30,11 @@ export class CategoriesPageComponent implements OnInit {
 
   get canDelete(): boolean {
     return this.authService.isAdmin();
+  }
+
+  fieldError(fieldName: string): string | null {
+    const errors = this.fieldErrors()[fieldName];
+    return errors && errors.length > 0 ? errors[0] : null;
   }
 
   ngOnInit(): void {
@@ -50,11 +56,15 @@ export class CategoriesPageComponent implements OnInit {
   }
 
   createCategory(): void {
-    if (!this.newCategoryName.trim()) {
+    const name = this.newCategoryName.trim();
+    this.errorMessage.set('');
+    if (!name) {
+      this.fieldErrors.set({ name: ['Name is required.'] });
       return;
     }
+    this.fieldErrors.set({});
     this.isCreating.set(true);
-    this.categoriesService.createCategory(this.newCategoryName.trim()).subscribe({
+    this.categoriesService.createCategory(name).subscribe({
       next: () => {
         this.newCategoryName = '';
         this.isCreating.set(false);
@@ -62,7 +72,11 @@ export class CategoriesPageComponent implements OnInit {
       },
       error: (error) => {
         this.isCreating.set(false);
-        this.errorMessage.set(error?.error?.message ?? 'Could not create category.');
+        if (error.status === 422) {
+          this.fieldErrors.set(error.error?.errors ?? {});
+        } else {
+          this.errorMessage.set(error?.error?.message ?? 'Could not create category.');
+        }
       },
     });
   }
@@ -70,24 +84,34 @@ export class CategoriesPageComponent implements OnInit {
   startEditing(category: Category): void {
     this.editingCategoryId.set(category.id);
     this.editingCategoryName = category.name;
+    this.fieldErrors.set({});
   }
 
   cancelEditing(): void {
     this.editingCategoryId.set(null);
     this.editingCategoryName = '';
+    this.fieldErrors.set({});
   }
 
   saveEditing(categoryId: number): void {
-    if (!this.editingCategoryName.trim()) {
+    const name = this.editingCategoryName.trim();
+    this.errorMessage.set('');
+    if (!name) {
+      this.fieldErrors.set({ name: ['Name is required.'] });
       return;
     }
-    this.categoriesService.updateCategory(categoryId, this.editingCategoryName.trim()).subscribe({
+    this.fieldErrors.set({});
+    this.categoriesService.updateCategory(categoryId, name).subscribe({
       next: () => {
         this.cancelEditing();
         this.loadCategories();
       },
       error: (error) => {
-        this.errorMessage.set(error?.error?.message ?? 'Could not update category.');
+        if (error.status === 422) {
+          this.fieldErrors.set(error.error?.errors ?? {});
+        } else {
+          this.errorMessage.set(error?.error?.message ?? 'Could not update category.');
+        }
       },
     });
   }

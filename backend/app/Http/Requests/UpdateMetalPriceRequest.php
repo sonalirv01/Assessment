@@ -14,7 +14,7 @@ class UpdateMetalPriceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'price_per_gram' => ['required', 'numeric', 'min:0'],
+            'price_per_gram' => ['required', 'numeric', 'min:0.01', 'max:1000000'],
         ];
     }
 }

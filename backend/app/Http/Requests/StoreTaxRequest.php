@@ -14,7 +14,7 @@ class StoreTaxRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', 'unique:taxes,name'],
             'percentage' => ['required', 'numeric', 'min:0', 'max:100'],
             'is_active' => ['boolean'],
         ];

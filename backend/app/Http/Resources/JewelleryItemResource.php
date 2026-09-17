@@ -20,15 +20,18 @@ class JewelleryItemResource extends JsonResource
             ],
             'metal_type' => $this->metal_type,
             'metal_type_label' => $this->metalPrice->label,
-            'weight_grams' => (float) $this->weight_grams,
-            'making_charges' => (float) $this->making_charges,
-            'shipping_charges' => (float) $this->shipping_charges,
+            // Decimal-cast attributes already come back as exact strings
+            // (e.g. "5.500") — never cast these to float, or the precision
+            // this API guarantees downstream gets thrown away right here.
+            'weight_grams' => (string) $this->weight_grams,
+            'making_charges' => (string) $this->making_charges,
+            'shipping_charges' => (string) $this->shipping_charges,
             'is_available' => $this->is_available,
             'images' => JewelleryItemImageResource::collection($this->whenLoaded('images')),
             'taxes' => $this->taxes->map(fn ($tax) => [
                 'id' => $tax->id,
                 'name' => $tax->name,
-                'percentage' => (float) $tax->percentage,
+                'percentage' => (string) $tax->percentage,
             ]),
             'price_breakdown' => app(JewelleryPriceCalculator::class)->calculate($this->resource),
             'created_at' => $this->created_at,

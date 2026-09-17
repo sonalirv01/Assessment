@@ -20,6 +20,7 @@
           id="name"
           type="text"
           formControlName="name"
+          maxlength="255"
           class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
         />
         @if (fieldError('name')) {
@@ -33,6 +34,7 @@
           id="description"
           formControlName="description"
           rows="3"
+          maxlength="5000"
           class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
         ></textarea>
         @if (fieldError('description')) {
@@ -85,7 +87,8 @@
             id="weight_grams"
             type="number"
             step="0.01"
-            min="0"
+            min="0.01"
+            max="10000"
             formControlName="weight_grams"
             class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
           />
@@ -101,6 +104,7 @@
             type="number"
             step="0.01"
             min="0"
+            max="10000000"
             formControlName="making_charges"
             class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
           />
@@ -116,6 +120,7 @@
             type="number"
             step="0.01"
             min="0"
+            max="10000000"
             formControlName="shipping_charges"
             class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
           />

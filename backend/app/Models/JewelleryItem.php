@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class JewelleryItem extends Model
 {
@@ -48,5 +49,24 @@ class JewelleryItem extends Model
     public function images(): HasMany
     {
         return $this->hasMany(JewelleryItemImage::class)->orderBy('sort_order');
+    }
+
+    protected static function booted(): void
+    {
+        // The images table cascades the row delete at the database level
+        // (cascadeOnDelete in the migration), which never fires Eloquent's
+        // own model events on JewelleryItemImage — so the stored files
+        // would otherwise be silently orphaned every time an item is
+        // deleted. Clean them up here instead, before that cascade runs.
+        static::deleting(fn (JewelleryItem $item) => $item->deleteStoredImages());
+    }
+
+    public function deleteStoredImages(): void
+    {
+        foreach ($this->images as $image) {
+            if ($image->path) {
+                Storage::disk('public')->delete($image->path);
+            }
+        }
     }
 }

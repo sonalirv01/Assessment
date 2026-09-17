@@ -16,12 +16,14 @@ class StoreJewelleryItemRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
+            'description' => ['nullable', 'string', 'max:5000'],
             'category_id' => ['required', 'integer', 'exists:categories,id'],
             'metal_type' => ['required', 'string', 'exists:metal_prices,key'],
-            'weight_grams' => ['required', 'numeric', 'min:0.001'],
-            'making_charges' => ['required', 'numeric', 'min:0'],
-            'shipping_charges' => ['required', 'numeric', 'min:0'],
+            // Upper bounds are sanity caps against fat-finger/overflow input,
+            // not real-world limits — generous enough for any genuine piece.
+            'weight_grams' => ['required', 'numeric', 'min:0.001', 'max:10000'],
+            'making_charges' => ['required', 'numeric', 'min:0', 'max:10000000'],
+            'shipping_charges' => ['required', 'numeric', 'min:0', 'max:10000000'],
             'is_available' => ['boolean'],
             'tax_ids' => ['array'],
             'tax_ids.*' => ['integer', 'exists:taxes,id'],
